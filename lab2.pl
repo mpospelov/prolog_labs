@@ -100,3 +100,45 @@ msum(L1, L2):-
   accumulator_msum(L1, [], IL2),
   invert(IL2, L2).
 
+% path(From, To, Path)
+
+%% room(Id, Neighbour_rooms).
+%% maze(Rooms).
+
+room(0, [1]).
+room(1, [0, 2]).
+room(2, [1, 3, 4]).
+room(3, [2]).
+room(4, [2,5]).
+room(5, [4,6,7]).
+room(6, [5]).
+room(7, [5]).
+
+% path(0, 7, Path). Path = [0,1,2,5,7]
+acc_next_rooms([], _, A, A).
+acc_next_rooms(Neighbours, Visited, A, R):-
+  Neighbours = [H|T],
+  (member(H, Visited)->
+    acc_next_rooms(T, Visited, A, R);
+    acc_next_rooms(T, Visited, [H|A], R)
+  ).
+
+next_rooms(Neighbours, Visited, R):-
+  acc_next_rooms(Neighbours, Visited, [], R).
+
+acc_path(From, From, _, A, A).
+acc_path(From, To, Visited, A, Path):-
+  room(From, Neighbours),
+  next_rooms(Neighbours, Visited, NextRooms),
+  each_next_room(NextRooms, To, Visited, A, Path).
+
+each_next_room([], _, _, _, _).
+each_next_room([NextRoom|NextRooms], To, Visited, A, Path):-
+  NewVisited = [NextRoom|Visited],
+  NewA = [NextRoom|A],
+  acc_path(NextRoom, To, NewVisited, NewA, Path),
+  each_next_room(NextRooms, To,Visited, NewA, Path).
+
+path(From, To, Path):-
+  acc_path(From, To, [], [], IPath),
+  invert(IPath, Path).
