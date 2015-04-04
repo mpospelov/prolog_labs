@@ -76,7 +76,8 @@ accumulator_unbr([], A, A).
 accumulator_unbr([H | L1_Tail], A, L2):-
   (is_list(H)->
     accumulator_unbr(H, [], A1),
-    concat(A1, A, New_A);
+    concat(A1, A, New_A)
+    ;
     New_A = [H|A]
   ),
   accumulator_unbr(L1_Tail, New_A, L2).  
@@ -84,6 +85,18 @@ unbr(L1, L2):-
   accumulator_unbr(L1, [], M_R),
   invert(M_R, L2).
 
+%% msum([[1,2,3],[],[-12,13]],S]. S=[6,0,1]
+list_sum([], 0).
+list_sum([H|T], S):- 
+  list_sum(T, Tail_Sum),
+  S is H + Tail_Sum.
 
+accumulator_msum([], A, A).
+accumulator_msum([H|T], A, L2):-
+  list_sum(H, S),
+  accumulator_msum(T,[S|A],L2).
 
+msum(L1, L2):-
+  accumulator_msum(L1, [], IL2),
+  invert(IL2, L2).
 
