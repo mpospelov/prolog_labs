@@ -10,6 +10,8 @@ last([_|T],X):- last(T,X).
 push(X, [], [X]).
 push(X, [F|L1_Tail], [F|L2_Tail]):-
   push(X, L1_Tail, L2_Tail).
+% is_blank_list(L)
+is_list_blank([]).
 
 % concat(L1,L2,L3)
 %?-concat([a,b],[c,d],[a,b,c,d]). Yes
@@ -108,7 +110,7 @@ msum(L1, L2):-
 room(0, [1]).
 room(1, [0, 2]).
 room(2, [1, 3, 4]).
-room(3, [2]).
+room(3, [2,6]).
 room(4, [2,5]).
 room(5, [4,6,7]).
 room(6, [5]).
@@ -137,8 +139,10 @@ each_next_room([NextRoom|NextRooms], To, Visited, A, Path):-
   NewVisited = [NextRoom|Visited],
   NewA = [NextRoom|A],
   acc_path(NextRoom, To, NewVisited, NewA, Path),
-  each_next_room(NextRooms, To,Visited, NewA, Path).
+  each_next_room(NextRooms, To, Visited, NewA, Path).
 
 path(From, To, Path):-
   acc_path(From, To, [], [], IPath),
-  invert(IPath, Path).
+  IPath \= [],
+  invert(IPath, WithoutStartPath),
+  Path = [From|WithoutStartPath].
