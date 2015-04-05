@@ -128,21 +128,18 @@ acc_next_rooms(Neighbours, Visited, A, R):-
 next_rooms(Neighbours, Visited, R):-
   acc_next_rooms(Neighbours, Visited, [], R).
 
-acc_path(From, From, _, A, A).
+acc_path(From, From, _, A, [From|A]).
 acc_path(From, To, Visited, A, Path):-
   room(From, Neighbours),
   next_rooms(Neighbours, Visited, NextRooms),
-  each_next_room(NextRooms, To, Visited, A, Path).
+  each_next_room(NextRooms, To, [From|Visited], [From|A], Path).
 
 each_next_room([], _, _, _, _).
 each_next_room([NextRoom|NextRooms], To, Visited, A, Path):-
-  NewVisited = [NextRoom|Visited],
-  NewA = [NextRoom|A],
-  acc_path(NextRoom, To, NewVisited, NewA, Path),
-  each_next_room(NextRooms, To, Visited, NewA, Path).
+  acc_path(NextRoom, To, Visited, A, Path),
+  each_next_room(NextRooms, To, Visited, A, Path).
 
 path(From, To, Path):-
   acc_path(From, To, [], [], IPath),
   IPath \= [],
-  invert(IPath, WithoutStartPath),
-  Path = [From|WithoutStartPath].
+  invert(IPath, Path).
