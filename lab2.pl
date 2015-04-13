@@ -1,6 +1,12 @@
 debug_print(Name, Val):-
   print(Name), write(Val), nl.
 
+xor(A, B, R):-
+  (A = 0, B = 0 -> R = 0);
+  (A = 0, B = 1 -> R = 1);
+  (A = 1, B = 0 -> R = 1);
+  (A = 1, B = 1 -> R = 0).
+
 %last(L1, X)
 last([], _):- !, fail.
 last([X], X).
@@ -107,14 +113,16 @@ msum(L1, L2):-
 %% room(Id, Neighbour_rooms).
 %% maze(Rooms).
 
-room(0, [1]).
-room(1, [0, 2]).
-room(2, [1, 3, 4]).
-room(3, [2,6]).
-room(4, [2,5]).
-room(5, [4,6,7]).
-room(6, [5]).
-room(7, [5]).
+room(0, [1, 2]).
+room(1, [0]).
+room(2, [0, 3, 7]).
+room(3, [2, 4, 6]).
+room(4, [3 ,5]).
+room(5, [4]).
+room(6, [3, 7]).
+room(7, [2, 6, 8]).
+room(8, [7, 9]).
+room(9, [8]).
 
 % path(0, 7, Path). Path = [0,1,2,5,7]
 acc_next_rooms([], _, A, A).
@@ -143,3 +151,79 @@ path(From, To, Path):-
   acc_path(From, To, [], [], IPath),
   IPath \= [],
   invert(IPath, Path).
+
+at_index(0, [H |_], H).
+at_index(Index, [_|T], Result):-
+  Index > 0,
+  DecrIndex is Index - 1,
+  at_index(DecrIndex, T, Result).
+
+min(A, B, Min):- 
+  (A > B->
+    Min = B;
+    Min = A
+  ).
+
+% solve(MaxValues, Target, Actions)
+% @param MaxValues: [V1, V2]
+% @param Target: [ContainerIndex, VTarget]
+% @param Actions: List of actions - 'Fill container #{number}' or 'Empty container #{number}'
+
+solve(MaxValues, [ContainerIndex, VTarget], Actions):-
+  MaxValues = [V1, V2],
+  min(V1, V2, Min),
+  (Min \= V1->
+    invert(MaxValues, SortedValues),
+    xor(ContainerIndex, 1, SortedIndex)
+    ;
+    SortedValues = MaxValues,
+    SortedIndex = ContainerIndex
+  ),
+  acc_solve(SortedValues, [SortedIndex, VTarget], [0, 0], [], Actions).
+
+% acc_solve(MaxValues, Target, CurrentValues, Actions)
+% @param MaxValues: [V1, V2]
+% @param Target: [ContainerIndex, VTarget]
+% @param CurrentValues: [CV1, CV2]
+% @params Actions: List of actions - 
+% 'Fill container #{volume}', 'Empty container #{volume}', 'Move water from #{volume1} to #{volume2}'
+
+acc_solve(_, [Index, VTarget], CurrentValues, Actions, Result):-
+  at_index(Index, CurrentValues, VTarget),
+  Result = Actions,
+  !.
+
+acc_solve(MaxValues, Target, CurrentValues, Actions, R):-
+  MaxValues = [V1, V2],
+  CurrentValues = [CV1, CV2],
+  NewActions = [NewAction|Actions],
+  (CV2 = V2-> % Container2 is full
+    empty(V2, NewAction),
+    acc_solve(MaxValues, Target, [CV1, 0], NewActions, R)
+    ;
+    (CV1 = 0-> % Container1 is empty
+      fill(V1, NewAction),
+      acc_solve(MaxValues, Target, [V1, CV2], NewActions, R)
+      ;% Container1 has something
+      move_containment(V1, V2, NewAction),
+      SumCV2 is CV2 + CV1,
+      min(V2, SumCV2, NewCV2),
+      (NewCV2 = V2->
+        NewCV1 is SumCV2 - V2;
+        NewCV1 is 0
+      ),
+      acc_solve(MaxValues, Target, [NewCV1, NewCV2], NewActions, R) 
+    )
+  ).
+  
+fill(Container, Action):-
+  atom_concat('Fill container #', Container, Action),
+  write(Action),nl.
+empty(Container, Action):-
+  atom_concat('Empty container #', Container, Action),
+  write(Action),nl.
+move_containment(Container1, Container2, Action):-
+  atom_concat('Move water from #', Container1, R1),
+  atom_concat(R1, ' to #', R2),
+  atom_concat(R2, Container2, Action),
+  write(Action), nl.
