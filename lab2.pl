@@ -30,34 +30,28 @@ concat([H | L1_Tail], L2, L3):-
 %invert(L1, L2)
 %invert([a,b,c],[c,X,a]). X=b
 
-accumulator_invert([], A, A):-!.
-accumulator_invert([H|L1_Tail], A, L2):- 
-  accumulator_invert(L1_Tail, [H|A], L2).
+invert([], A, A):-!.
+invert([H|L1_Tail], A, L2):- 
+  invert(L1_Tail, [H|A], L2).
 
-invert(L1, L2):- accumulator_invert(L1, [], L2).
+invert(L1, L2):- invert(L1, [], L2).
 
 %% member(X, L)
-member(X, [X|_]).
-member(X, [_|T]):-
-  member(X,T).
-
+member(X,[X|_]) :- !.
+member(X,[_|T]) :- member(X,T).
+ 
 %% ?-uniq([a,b,a,c,d,d],Z). Z=[a,b,c,d]
-accumulator_uniq([], A, A).
-accumulator_uniq([H|L1_Tail], A, L2):-
-  (member(H, A))->
-    accumulator_uniq(L1_Tail, A, L2); 
-    accumulator_uniq(L1_Tail, [H|A], L2).
-
-uniq(L1, L2):-
-  accumulator_uniq(L1, [], L3),
-  invert(L2, L3).
+uniq([],[]).
+uniq(A, B) :- var(A), !, A = B, uniq(A,A). 
+uniq([H|T],C) :- member(H,T), !, uniq(T,C).
+uniq([H|T],[H|C]) :- uniq(T,C).
 
 
 %%?-ucat([a,b,c],[d,c,e,a],Y). Y=[a,b,c,d,e]
 
 ucat(L1, L2, Result):-
   concat(L1, L2, L3),
-  uniq(L3, Result).
+  uniq(L3, Result),!.
 
 %% ?-mapop("+",[1,2,3],[4,5,6],R). R=[5,7,9]
 calc("+", X, Y, R):-
@@ -69,28 +63,28 @@ calc("/", X, Y, R):-
 calc("-", X, Y, R):-
   R is X - Y.
 
-accumulator_mapop(_, [], [], A, Result):-
+mapop(_, [], [], A, Result):-
   invert(A, Result).
 
-accumulator_mapop(OP, [H1|T1], [H2|T2], A, Result):-
+mapop(OP, [H1|T1], [H2|T2], A, Result):-
   calc(OP, H1, H2, New_Head),
-  accumulator_mapop(OP, T1, T2, [New_Head|A], Result).
+  mapop(OP, T1, T2, [New_Head|A], Result).
 
 mapop(OP, L1, L2, Result):-
-  accumulator_mapop(OP, L1, L2, [], Result).
+  mapop(OP, L1, L2, [], Result).
 
 %% unbr([[],[a,[1,[2,d],[]],56],[[[[v],b]]]],Q]. Q=[a,1,2,d,56,v,b]
-accumulator_unbr([], A, A).
-accumulator_unbr([H | L1_Tail], A, L2):-
+unbr([], A, A).
+unbr([H | L1_Tail], A, L2):-
   (is_list(H)->
-    accumulator_unbr(H, [], A1),
+    unbr(H, [], A1),
     concat(A1, A, New_A)
     ;
     New_A = [H|A]
   ),
-  accumulator_unbr(L1_Tail, New_A, L2).  
+  unbr(L1_Tail, New_A, L2).  
 unbr(L1, L2):-
-  accumulator_unbr(L1, [], M_R),
+  unbr(L1, [], M_R),
   invert(M_R, L2).
 
 %% msum([[1,2,3],[],[-12,13]],S]. S=[6,0,1]
@@ -125,30 +119,30 @@ room(8, [7, 9]).
 room(9, [8]).
 
 % path(0, 7, Path). Path = [0,1,2,5,7]
-acc_next_rooms([], _, A, A).
-acc_next_rooms(Neighbours, Visited, A, R):-
+next_rooms([], _, A, A).
+next_rooms(Neighbours, Visited, A, R):-
   Neighbours = [H|T],
   (member(H, Visited)->
-    acc_next_rooms(T, Visited, A, R);
-    acc_next_rooms(T, Visited, [H|A], R)
+    next_rooms(T, Visited, A, R);
+    next_rooms(T, Visited, [H|A], R)
   ).
 
 next_rooms(Neighbours, Visited, R):-
-  acc_next_rooms(Neighbours, Visited, [], R).
+  next_rooms(Neighbours, Visited, [], R).
 
-acc_path(From, From, _, A, [From|A]).
-acc_path(From, To, Visited, A, Path):-
+path(From, From, _, A, [From|A]).
+path(From, To, Visited, A, Path):-
   room(From, Neighbours),
   next_rooms(Neighbours, Visited, NextRooms),
   each_next_room(NextRooms, To, [From|Visited], [From|A], Path).
 
 each_next_room([], _, _, _, _).
 each_next_room([NextRoom|NextRooms], To, Visited, A, Path):-
-  acc_path(NextRoom, To, Visited, A, Path),
+  path(NextRoom, To, Visited, A, Path),
   each_next_room(NextRooms, To, Visited, A, Path).
 
 path(From, To, Path):-
-  acc_path(From, To, [], [], IPath),
+  path(From, To, [], [], IPath),
   IPath \= [],
   invert(IPath, Path).
 
@@ -188,22 +182,22 @@ solve(MaxValues, [ContainerIndex, VTarget], Actions):-
 % @params Actions: List of actions - 
 % 'Fill container #{volume}', 'Empty container #{volume}', 'Move water from #{volume1} to #{volume2}'
 
-acc_solve(_, [Index, VTarget], CurrentValues, Actions, Result):-
+solve(_, [Index, VTarget], CurrentValues, Actions, Result):-
   at_index(Index, CurrentValues, VTarget),
   Result = Actions,
   !.
 
-acc_solve(MaxValues, Target, CurrentValues, Actions, R):-
+solve(MaxValues, Target, CurrentValues, Actions, R):-
   MaxValues = [V1, V2],
   CurrentValues = [CV1, CV2],
   NewActions = [NewAction|Actions],
   (CV2 = V2-> % Container2 is full
     empty(V2, NewAction),
-    acc_solve(MaxValues, Target, [CV1, 0], NewActions, R)
+    solve(MaxValues, Target, [CV1, 0], NewActions, R)
     ;
     (CV1 = 0-> % Container1 is empty
       fill(V1, NewAction),
-      acc_solve(MaxValues, Target, [V1, CV2], NewActions, R)
+      solve(MaxValues, Target, [V1, CV2], NewActions, R)
       ;% Container1 has something
       move_containment(V1, V2, NewAction),
       SumCV2 is CV2 + CV1,
@@ -212,7 +206,7 @@ acc_solve(MaxValues, Target, CurrentValues, Actions, R):-
         NewCV1 is SumCV2 - V2;
         NewCV1 is 0
       ),
-      acc_solve(MaxValues, Target, [NewCV1, NewCV2], NewActions, R) 
+      solve(MaxValues, Target, [NewCV1, NewCV2], NewActions, R) 
     )
   ).
   
